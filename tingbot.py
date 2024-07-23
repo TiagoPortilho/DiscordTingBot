@@ -1,10 +1,14 @@
 import discord
 import random
+import os
+from dotenv import load_dotenv
 
-discord_api_key = "MTI2NDk2NDQyOTE1NDQ4NDMwNw.GmsHP3.yKZx1wk_0edZ_Ptb6TVjKbAoVx8UycGRnhHWoQ"
+load_dotenv()
+
+discord_api_key = os.getenv("DISCORD_API_KEY")
 
 
-class MyClient(discord.Client):
+class Tingbot(discord.Client):
     async def on_ready(self):
         print(f'Logged on as {self.user}!')
 
@@ -24,5 +28,5 @@ class MyClient(discord.Client):
 intents = discord.Intents.default()
 intents.message_content = True
 
-client = MyClient(intents=intents)
+client = Tingbot(intents=intents)
 client.run(discord_api_key)

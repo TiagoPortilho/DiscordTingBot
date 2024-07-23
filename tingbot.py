@@ -1,16 +1,10 @@
 import discord
 import random
-import os
-from dotenv import load_dotenv
-from openai import OpenAI
+
+discord_api_key = "MTI2NDk2NDQyOTE1NDQ4NDMwNw.GmsHP3.yKZx1wk_0edZ_Ptb6TVjKbAoVx8UycGRnhHWoQ"
 
 
-load_dotenv()
-
-discord_api_key = os.getenv("DISCORD_API_KEY")
-openai_api_key = os.getenv("OPENAI_API_KEY")
-
-class Tingbot(discord.Client):
+class MyClient(discord.Client):
     async def on_ready(self):
         print(f'Logged on as {self.user}!')
 
@@ -26,13 +20,9 @@ class Tingbot(discord.Client):
             dmax = int(parts[1])
             await message.reply(random.randint(1, dmax), mention_author=True)
 
-        if message.content.startswith("$t"):
-            sexo = message.content[3:]
-            await message.reply(sexo)
-
 
 intents = discord.Intents.default()
 intents.message_content = True
 
-client = Tingbot(intents=intents)
+client = MyClient(intents=intents)
 client.run(discord_api_key)

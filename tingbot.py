@@ -3,6 +3,9 @@ import random
 import os
 from dotenv import load_dotenv
 from discord.ext import commands
+from gtts import gTTS
+import asyncio
+import aiohttp
 
 load_dotenv()
 
@@ -73,6 +76,33 @@ async def jokenpo(ctx):
 
         else:
             await ctx.send("Selecione uma opção válida.")
+
+
+@bot.command(name='join')
+async def join(ctx):
+    if ctx.author.voice:
+        channel = ctx.author.voice.channel
+        await channel.connect()
+    else:
+        await ctx.send("Você precisa estar em um canal de voz primeiro!")
+
+
+@bot.command(name='falar')
+async def falar(ctx, *, texto: str):
+    if ctx.voice_client is None:
+        if ctx.author.voice:
+            channel = ctx.author.voice.channel
+            await channel.connect()
+        else:
+            await ctx.send("Você precisa estar em um canal de voz para que eu possa entrar e falar!")
+            return
+    if ctx.voice_client:
+        tts = gTTS(texto, lang='pt')
+        tts.save('tts_output.mp3')
+
+        ffmpeg_executable = "C:\\ffmpeg\\bin\\ffmpeg.exe"
+
+        ctx.voice_client.play(discord.FFmpegPCMAudio('tts_output.mp3', executable=ffmpeg_executable))
 
 
 class MyHelp(commands.HelpCommand):

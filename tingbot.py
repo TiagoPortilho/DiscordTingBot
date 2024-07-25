@@ -78,15 +78,6 @@ async def jokenpo(ctx):
             await ctx.send("Selecione uma opção válida.")
 
 
-@bot.command(name='join')
-async def join(ctx):
-    if ctx.author.voice:
-        channel = ctx.author.voice.channel
-        await channel.connect()
-    else:
-        await ctx.send("Você precisa estar em um canal de voz primeiro!")
-
-
 @bot.command(name='falar')
 async def falar(ctx, *, texto: str):
     if ctx.voice_client is None:
@@ -102,7 +93,15 @@ async def falar(ctx, *, texto: str):
 
         ffmpeg_executable = "C:\\ffmpeg\\bin\\ffmpeg.exe"
 
-        ctx.voice_client.play(discord.FFmpegPCMAudio('tts_output.mp3', executable=ffmpeg_executable))
+        def after_playing(error):
+            if error:
+                print(f"Erro ao reproduzir o áudio: {error}")
+            if os.path.exists('tts_output.mp3'):
+                os.remove('tts_output.mp3')
+            print('Arquivo tts_output.mp3 removido.')
+
+        ctx.voice_client.play(discord.FFmpegPCMAudio('tts_output.mp3', executable=ffmpeg_executable),
+                              after=after_playing)
 
 
 class MyHelp(commands.HelpCommand):

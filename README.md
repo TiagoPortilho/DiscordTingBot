@@ -1,6 +1,21 @@
 # TingBot
 
-A Discord bot built with Python using discord.py.
+<p align="center">
+  <img src="img/tingbotProfile.webp" alt="TingBot Logo" width="150">
+</p>
+
+TingBot is a Python Discord bot featuring YouTube music playback, text-to-speech functionality, interactive games, and bilingual command support with simultaneous audio capabilities.
+
+##  Technologies
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python">
+  <img src="https://img.shields.io/badge/Discord.py-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord.py">
+  <img src="https://img.shields.io/badge/yt--dlp-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="yt-dlp">
+  <img src="https://img.shields.io/badge/gTTS-4285F4?style=for-the-badge&logo=google&logoColor=white" alt="gTTS">
+  <img src="https://img.shields.io/badge/FFmpeg-007808?style=for-the-badge&logo=ffmpeg&logoColor=white" alt="FFmpeg">
+  <img src="https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker">
+</p>
 
 ## Features
 

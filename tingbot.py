@@ -32,8 +32,8 @@ async def sair(ctx):
 @bot.command(name="help", aliases=["ajuda"], help="Mostra todos os comandos disponíveis.")
 async def help_command(ctx):
     embed = discord.Embed(
-        title="🤖 TingBot - Ajuda",
-        description="**Bem-vindo ao TingBot!** 🎉\n*Todos os comandos usam o prefixo `$`*",
+        title="TingBot - Ajuda",
+        description="**Bem-vindo ao TingBot!**\n*Todos os comandos usam o prefixo `$` *",
         color=discord.Color.from_rgb(88, 101, 242)  # Discord Blurple
     )
     
@@ -41,7 +41,7 @@ async def help_command(ctx):
 
     # Comandos Básicos
     embed.add_field(
-        name="⚡ **Comandos Básicos**",
+        name="**Comandos Básicos**",
         value="`$ping` - Verifica latência do bot\n"
               "`$sair` / `$exit` - Remove o bot do canal de voz",
         inline=True
@@ -49,7 +49,7 @@ async def help_command(ctx):
 
     # Diversão & Jogos
     embed.add_field(
-        name="🎯 **Jogos & Diversão**",
+        name="**Jogos & Diversão**",
         value="`$dado` / `$dice <número>` - Rola um dado\n"
               "`$jokenpo` / `$rps` - Pedra, papel e tesoura",
         inline=True
@@ -57,7 +57,7 @@ async def help_command(ctx):
 
     # TTS
     embed.add_field(
-        name="🗣️ **Text-to-Speech**",
+        name="**Text-to-Speech**",
         value="`$falar` / `$speak <texto>` - Bot fala seu texto\n"
               "`$tts_fila` / `$tf` - Ver fila de mensagens TTS",
         inline=True
@@ -65,7 +65,7 @@ async def help_command(ctx):
 
     # Controles de Música
     embed.add_field(
-        name="🎵 **Player de Música**",
+        name="**Player de Música**",
         value="`$tocar` / `$play <música>` - Tocar música\n"
               "`$pausar` / `$pause` - Pausar música\n"
               "`$continuar` / `$resume` - Retomar música\n"
@@ -75,7 +75,7 @@ async def help_command(ctx):
 
     # Gerenciamento de Fila
     embed.add_field(
-        name="📋 **Fila & Controles**",
+        name="**Fila & Controles**",
         value="`$pular` / `$skip` - Próxima música\n"
               "`$fila` / `$queue` - Ver fila de músicas\n"
               "`$loop` / `$repetir` - Ativar/desativar loop",
@@ -84,7 +84,7 @@ async def help_command(ctx):
 
     # Configurações de Áudio  
     embed.add_field(
-        name="🔊 **Configurações**",
+        name="**Configurações**",
         value="`$volume` / `$vol <0-100>` - Ajustar volume\n"
               "`$tocando` / `$np` - Info da música atual",
         inline=True
@@ -92,7 +92,7 @@ async def help_command(ctx):
 
     # Dicas especiais
     embed.add_field(
-        name="💡 **Dicas Especiais**",
+        name="**Dicas Especiais**",
         value="• **TTS com Pitch**: Use `$falar texto | 0.8` para voz mais grave\n"
               "• **URLs do YouTube**: Cole links diretos para tocar\n"
               "• **TTS + Música**: TTS entra na fila se música estiver tocando",
@@ -100,8 +100,8 @@ async def help_command(ctx):
     )
 
     embed.set_footer(
-        text="🎵 Feito com ❤️ • Suporte para YouTube, Spotify e mais!",
-        icon_url="https://cdn.discordapp.com/emojis/749750394142523402.png"
+        text="Desenvolvido por https://github.com/TiagoPortilho",
+        icon_url="https://github.githubassets.com/favicons/favicon.png"
     )
     
     await ctx.send(embed=embed)

@@ -91,7 +91,7 @@ async def falar(ctx, *, texto: str):
         tts = gTTS(texto, lang='pt')
         tts.save('tts_output.mp3')
 
-        ffmpeg_executable = "C:\\ffmpeg\\bin\\ffmpeg.exe"
+        ffmpeg_executable = "ffmpeg"
 
         def after_playing(error):
             if error:

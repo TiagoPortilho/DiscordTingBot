@@ -6,10 +6,16 @@ from discord.ext import commands
 from gtts import gTTS
 import asyncio
 import aiohttp
+import subprocess
 
 load_dotenv()
 
-discord_api_key = os.getenv("DISCORD_API_KEY")
+# Configurações (valores padrão, podem ser sobrescritos via .env)
+DISCORD_API_KEY = os.getenv("DISCORD_API_KEY")
+COMMAND_PREFIX = os.getenv("COMMAND_PREFIX", "$")
+TTS_LANG = os.getenv("TTS_LANG", "pt")
+PITCH_FACTOR = float(os.getenv("PITCH_FACTOR", "0.85"))
+JOKENPO_TIMEOUT = int(os.getenv("JOKENPO_TIMEOUT", "30"))
 
 description = " "
 
@@ -17,7 +23,7 @@ intents = discord.Intents.default()
 intents.members = True
 intents.message_content = True
 
-bot = commands.Bot(command_prefix='$', description=description, intents=intents)
+bot = commands.Bot(command_prefix=COMMAND_PREFIX, description=description, intents=intents)
 
 
 @bot.event
@@ -26,60 +32,69 @@ async def on_ready():
     print('------')
 
 
-@bot.command(name="ola")
-async def ola(ctx):
-    await ctx.reply("Olá, eu sou tingbot", mention_author=True)
+@bot.command(name="ping", help="Verifica a latência do bot.")
+async def ping(ctx):
+    await ctx.reply(f"Pong! Latência: {round(bot.latency * 1000)}ms", mention_author=True)
 
 
-@bot.command(name="dado")
-async def dado(ctx, dmax: int):
-    await ctx.reply(random.randint(1, dmax), mention_author=True)
+@bot.command(name="sair", help="Faz o bot sair do canal de voz.")
+async def sair(ctx):
+    if ctx.voice_client:
+        await ctx.voice_client.disconnect()
+        await ctx.reply("Saí do canal de voz!", mention_author=True)
+    else:
+        await ctx.reply("Não estou em nenhum canal de voz.", mention_author=True)
 
 
-@bot.command(name="jokenpo")
+@bot.command(name="dado", help="Rola um dado de 1 até o número máximo especificado.")
+async def dado(ctx, dmax: str):
+    try:
+        max_val = int(dmax)
+        if max_val < 1:
+            await ctx.reply("O número máximo deve ser pelo menos 1.", mention_author=True)
+        else:
+            await ctx.reply(random.randint(1, max_val), mention_author=True)
+    except ValueError:
+        await ctx.reply("Por favor, forneça um número válido.", mention_author=True)
+
+
+@bot.command(name="jokenpo", help="Joga pedra, papel e tesoura com o bot.")
 async def jokenpo(ctx):
-    await ctx.send("Vamos jogar pedra, papel e tesoura?\n"
-                   "1 - Pedra\n"
-                   "2 - Papel\n"
-                   "3 - Tesoura\n"
-                   "Digite um número:\n")
+    msg = await ctx.send("Vamos jogar pedra, papel e tesoura?\nEscolha uma opção reagindo com um dos emojis abaixo:")
 
-    list_jokenpo = {1: "Pedra", 2: "Papel", 3: "Tesoura"}
+    await msg.add_reaction("🪨")
+    await msg.add_reaction("📄")
+    await msg.add_reaction("✂️")
+
+    list_jokenpo = {"🪨": "Pedra", "📄": "Papel", "✂️": "Tesoura"}
+    emoji_to_num = {"🪨": 1, "📄": 2, "✂️": 3}
     botchoice = random.randint(1, 3)
 
-    def check(m):
-        return m.author == ctx.author and m.channel == ctx.channel
+    def check(reaction, user):
+        return user == ctx.author and str(reaction.emoji) in list_jokenpo and reaction.message.id == msg.id
 
     try:
-        msg = await bot.wait_for("message", check=check, timeout=30)
-    except TimeoutError:
-        await ctx.send("Você demorou muito para responder!")
+        reaction, user = await bot.wait_for("reaction_add", check=check, timeout=JOKENPO_TIMEOUT)
+    except asyncio.TimeoutError:
+        await ctx.send("Você demorou muito para reagir!")
     else:
-        userchoice = int(msg.content)
-        if (userchoice == 1 and botchoice == 3) or (userchoice == 2 and botchoice == 1) or (userchoice == 3 and
-                                                                                            botchoice == 2):
-            await ctx.send("Você escolheu: " + str(list_jokenpo[userchoice]) + "\nEu escolhi: "
-                           + str(list_jokenpo[botchoice]))
-            await ctx.send(f"Parabéns {msg.author.mention} você venceu!")
-
-        elif (userchoice == 3 and botchoice == 1) or (userchoice == 1 and botchoice == 2) or (userchoice == 2 and
-                                                                                              botchoice == 3):
-            await ctx.send("Você escolheu: " + str(list_jokenpo[userchoice]) + "\nEu escolhi: "
-                           + str(list_jokenpo[botchoice]))
-            await ctx.send(f"HAHAHA {msg.author.mention} você perdeu pra um robô!")
-
-        elif (userchoice == 1 and botchoice == 1) or (userchoice == 2 and botchoice == 2) or (userchoice == 3 and
-                                                                                              botchoice == 3):
-            await ctx.send("Você escolheu: " + str(list_jokenpo[userchoice]) + "\nEu escolhi: "
-                           + str(list_jokenpo[botchoice]))
-            await ctx.send(f"{msg.author.mention} nós empatamos!")
-
+        userchoice = emoji_to_num[str(reaction.emoji)]
+        bot_emoji = {1: "🪨", 2: "📄", 3: "✂️"}[botchoice]
+        if (userchoice == 1 and botchoice == 3) or (userchoice == 2 and botchoice == 1) or (userchoice == 3 and botchoice == 2):
+            await ctx.send(f"Você escolheu: {list_jokenpo[str(reaction.emoji)]} {str(reaction.emoji)}\nEu escolhi: {list_jokenpo[bot_emoji]} {bot_emoji}")
+            await ctx.send(f"Parabéns {user.mention} você venceu!")
+        elif (userchoice == 3 and botchoice == 1) or (userchoice == 1 and botchoice == 2) or (userchoice == 2 and botchoice == 3):
+            await ctx.send(f"Você escolheu: {list_jokenpo[str(reaction.emoji)]} {str(reaction.emoji)}\nEu escolhi: {list_jokenpo[bot_emoji]} {bot_emoji}")
+            await ctx.send(f"HAHAHA {user.mention} você perdeu pra um robô!")
+        elif userchoice == botchoice:
+            await ctx.send(f"Você escolheu: {list_jokenpo[str(reaction.emoji)]} {str(reaction.emoji)}\nEu escolhi: {list_jokenpo[bot_emoji]} {bot_emoji}")
+            await ctx.send(f"{user.mention} nós empatamos!")
         else:
-            await ctx.send("Selecione uma opção válida.")
+            await ctx.send("Reação inválida.")
 
 
-@bot.command(name='falar')
-async def falar(ctx, *, texto: str):
+@bot.command(name='falar', help="Fala o texto fornecido em um canal de voz usando TTS. Opcional: | <pitch> para ajustar profundidade da voz (ex: 0.8 para mais grave).")
+async def falar(ctx, *, texto_and_pitch: str):
     if ctx.voice_client is None:
         if ctx.author.voice:
             channel = ctx.author.voice.channel
@@ -88,19 +103,50 @@ async def falar(ctx, *, texto: str):
             await ctx.send("Você precisa estar em um canal de voz para que eu possa entrar e falar!")
             return
     if ctx.voice_client:
-        tts = gTTS(texto, lang='pt')
+        # Parse texto e pitch opcional
+        if "|" in texto_and_pitch:
+            texto, pitch_str = texto_and_pitch.rsplit("|", 1)
+            texto = texto.strip()
+            try:
+                pitch = float(pitch_str.strip())
+            except ValueError:
+                await ctx.send("Pitch inválido. Use um número como 0.85.")
+                return
+        else:
+            texto = texto_and_pitch.strip()
+            pitch = PITCH_FACTOR
+
+        # Generate TTS with gTTS, then try to apply a pitch-shift with ffmpeg
+        tts = gTTS(texto, lang=TTS_LANG)
         tts.save('tts_output.mp3')
 
         ffmpeg_executable = "ffmpeg"
+        male_file = 'tts_output_male.mp3'
+        play_file = 'tts_output.mp3'
+
+        try:
+            # Lower pitch by decreasing the sample rate then resampling.
+            # asetrate factor <1 lowers pitch; tweak for deeper voice.
+            subprocess.run([
+                ffmpeg_executable, '-y', '-i', 'tts_output.mp3',
+                '-filter:a', f'asetrate=44100*{pitch},aresample=44100,atempo=1.0', male_file
+            ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            play_file = male_file
+        except Exception as e:
+            print(f'FFmpeg pitch shift failed: {e} — falling back to original gTTS output')
 
         def after_playing(error):
             if error:
                 print(f"Erro ao reproduzir o áudio: {error}")
-            if os.path.exists('tts_output.mp3'):
-                os.remove('tts_output.mp3')
-            print('Arquivo tts_output.mp3 removido.')
+            for f in ('tts_output.mp3', 'tts_output_male.mp3'):
+                try:
+                    if os.path.exists(f):
+                        os.remove(f)
+                except Exception:
+                    pass
+            print('Arquivos TTS removidos.')
 
-        ctx.voice_client.play(discord.FFmpegPCMAudio('tts_output.mp3', executable=ffmpeg_executable),
+        ctx.voice_client.play(discord.FFmpegPCMAudio(play_file, executable=ffmpeg_executable),
                               after=after_playing)
 
 
@@ -154,4 +200,4 @@ class MyHelp(commands.HelpCommand):
 
 bot.help_command = MyHelp()
 
-bot.run(discord_api_key)
+bot.run(DISCORD_API_KEY)

@@ -7,7 +7,7 @@ A Discord bot built with Python using discord.py.
 - Greeting command: `$ola`
 - Dice roll: `$dado <max>`
 - Rock-Paper-Scissors: `$jokenpo`
-- Text-to-Speech: `$falar <text>` (requires FFmpeg)
+- Text-to-Speech: `$falar <text>` (requires FFmpeg) – Optional: `$falar <text> | <pitch>` to adjust voice depth (e.g., 0.8 for deeper)
 
 ## Setup
 
@@ -28,6 +28,11 @@ Docker simplifies the setup by including FFmpeg automatically.
 1. Ensure Docker and Docker Compose are installed on your system.
 2. Clone the repository.
 3. Copy `.env.example` to `.env` and add your Discord API key: `DISCORD_API_KEY=your_key_here`
+   - Optionally, configure other settings:
+     - `COMMAND_PREFIX`: Bot command prefix (default: $)
+     - `TTS_LANG`: Language for TTS (default: pt)
+     - `PITCH_FACTOR`: Factor for voice pitch shift (0.8-0.9 for deeper voice, default: 0.85)
+     - `JOKENPO_TIMEOUT`: Timeout in seconds for jokenpo reactions (default: 30)
 4. Build and run with Docker Compose: `docker-compose up --build`
 
 This will build the image and start the container with the environment variables from `.env`.

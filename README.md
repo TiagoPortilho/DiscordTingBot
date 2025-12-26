@@ -4,10 +4,11 @@ A Discord bot built with Python using discord.py.
 
 ## Features
 
-- Greeting command: `$ola`
+- Ping command: `$ping`
+- Leave voice channel: `$sair`
 - Dice roll: `$dado <max>`
 - Rock-Paper-Scissors: `$jokenpo`
-- Text-to-Speech: `$falar <text>` (requires FFmpeg) – Optional: `$falar <text> | <pitch>` to adjust voice depth (e.g., 0.8 for deeper)
+- Text-to-Speech: `$falar <text>` (requires FFmpeg) – Optional: `$falar <text> | <pitch>` to adjust voice depth (e.g., 0.8 for deeper; default uses 0.85)
 
 ## Setup
 

@@ -7,6 +7,8 @@ import src.commands.game_commands
 import src.commands.tts_commands  
 import src.commands.music_commands
 
+bot.help_command = None
+
 @bot.event
 async def on_ready():
     print(f'Logged in as {bot.user} (ID: {bot.user.id})')
@@ -17,7 +19,7 @@ async def ping(ctx):
     embed = discord.Embed(title="🏓 Pong!", description=f"Latência: **{round(bot.latency * 1000)}ms**", color=discord.Color.green())
     await ctx.reply(embed=embed, mention_author=True)
 
-@bot.command(name="sair", help="Faz o bot sair do canal de voz.")
+@bot.command(name="sair", aliases=["exit"], help="Faz o bot sair do canal de voz.")
 async def sair(ctx):
     if ctx.voice_client:
         await ctx.voice_client.disconnect()
@@ -27,52 +29,82 @@ async def sair(ctx):
         embed = discord.Embed(title="❌ Erro", description="Não estou em nenhum canal de voz.", color=discord.Color.red())
         await ctx.reply(embed=embed, mention_author=True)
 
-class MyHelp(commands.HelpCommand):
-    def get_command_signature(self, command):
-        return '%s%s %s' % (self.context.clean_prefix, command.qualified_name, command.signature)
+@bot.command(name="help", aliases=["ajuda"], help="Mostra todos os comandos disponíveis.")
+async def help_command(ctx):
+    embed = discord.Embed(
+        title="🤖 TingBot - Ajuda",
+        description="**Bem-vindo ao TingBot!** 🎉\n*Todos os comandos usam o prefixo `$`*",
+        color=discord.Color.from_rgb(88, 101, 242)  # Discord Blurple
+    )
+    
+    embed.set_thumbnail(url="https://cdn.discordapp.com/emojis/749750394142523402.png")  # Bot emoji
 
-    async def send_bot_help(self, mapping):
-        embed = discord.Embed(title="Help", color=discord.Color.green())
-        for cog, cmmds in mapping.items():
-            filtered = await self.filter_commands(cmmds, sort=True)
-            if command_signatures := [
-                self.get_command_signature(c) for c in filtered
-            ]:
-                cog_name = getattr(cog, "qualified_name", "Comandos")
-                embed.add_field(name=cog_name, value="\n".join(command_signatures), inline=False)
+    # Comandos Básicos
+    embed.add_field(
+        name="⚡ **Comandos Básicos**",
+        value="`$ping` - Verifica latência do bot\n"
+              "`$sair` / `$exit` - Remove o bot do canal de voz",
+        inline=True
+    )
 
-        channel = self.get_destination()
-        await channel.send(embed=embed)
+    # Diversão & Jogos
+    embed.add_field(
+        name="🎯 **Jogos & Diversão**",
+        value="`$dado` / `$dice <número>` - Rola um dado\n"
+              "`$jokenpo` / `$rps` - Pedra, papel e tesoura",
+        inline=True
+    )
 
-    async def send_command_help(self, command):
-        embed = discord.Embed(title=self.get_command_signature(command), color=discord.Color.green())
-        if command.help:
-            embed.description = command.help
-        if alias := command.aliases:
-            embed.add_field(name="Aliases", value=", ".join(alias), inline=False)
+    # TTS
+    embed.add_field(
+        name="🗣️ **Text-to-Speech**",
+        value="`$falar` / `$speak <texto>` - Bot fala seu texto\n"
+              "`$tts_fila` / `$tf` - Ver fila de mensagens TTS",
+        inline=True
+    )
 
-        channel = self.get_destination()
-        await channel.send(embed=embed)
+    # Controles de Música
+    embed.add_field(
+        name="🎵 **Player de Música**",
+        value="`$tocar` / `$play <música>` - Tocar música\n"
+              "`$pausar` / `$pause` - Pausar música\n"
+              "`$continuar` / `$resume` - Retomar música\n"
+              "`$parar` / `$stop` - Parar e limpar fila",
+        inline=False
+    )
 
-    async def send_help_embed(self, title, dscrpt, cmmds):
-        embed = discord.Embed(title=title, description=dscrpt or "No help found...")
+    # Gerenciamento de Fila
+    embed.add_field(
+        name="📋 **Fila & Controles**",
+        value="`$pular` / `$skip` - Próxima música\n"
+              "`$fila` / `$queue` - Ver fila de músicas\n"
+              "`$loop` / `$repetir` - Ativar/desativar loop",
+        inline=True
+    )
 
-        if filtered_commands := await self.filter_commands(cmmds):
-            for command in filtered_commands:
-                embed.add_field(name=self.get_command_signature(command), value=command.help or "No help found...")
+    # Configurações de Áudio  
+    embed.add_field(
+        name="🔊 **Configurações**",
+        value="`$volume` / `$vol <0-100>` - Ajustar volume\n"
+              "`$tocando` / `$np` - Info da música atual",
+        inline=True
+    )
 
-        await self.get_destination().send(embed=embed)
+    # Dicas especiais
+    embed.add_field(
+        name="💡 **Dicas Especiais**",
+        value="• **TTS com Pitch**: Use `$falar texto | 0.8` para voz mais grave\n"
+              "• **URLs do YouTube**: Cole links diretos para tocar\n"
+              "• **TTS + Música**: TTS entra na fila se música estiver tocando",
+        inline=False
+    )
 
-    async def send_cog_help(self, cog):
-        title = cog.qualified_name or "No"
-        await self.send_help_embed(f'{title} Category', cog.description, cog.get_commands())
-
-    async def send_error_message(self, error):
-        embed = discord.Embed(title="Error", description=error, color=discord.Color.red())
-        channel = self.get_destination()
-        await channel.send(embed=embed)
-
-bot.help_command = MyHelp()
+    embed.set_footer(
+        text="🎵 Feito com ❤️ • Suporte para YouTube, Spotify e mais!",
+        icon_url="https://cdn.discordapp.com/emojis/749750394142523402.png"
+    )
+    
+    await ctx.send(embed=embed)
 
 if __name__ == "__main__":
     bot.run(DISCORD_API_KEY)

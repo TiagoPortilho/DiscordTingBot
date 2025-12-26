@@ -3,7 +3,7 @@ import random
 import asyncio
 from src.config import bot, EMOJIS_JOKENPO, JOKENPO_TIMEOUT
 
-@bot.command(name="dado", help="Rola um dado de 1 até o número máximo especificado.")
+@bot.command(name="dado", aliases=["dice"], help="Rola um dado de 1 até o número máximo especificado.")
 async def dado(ctx, dmax: str):
     try:
         max_val = int(dmax)
@@ -18,7 +18,7 @@ async def dado(ctx, dmax: str):
         embed = discord.Embed(title="❌ Erro", description="Por favor, forneça um número válido.", color=discord.Color.red())
         await ctx.reply(embed=embed, mention_author=True)
 
-@bot.command(name="jokenpo", help="Joga pedra, papel e tesoura com o bot.")
+@bot.command(name="jokenpo", aliases=["rps"], help="Joga pedra, papel e tesoura com o bot.")
 async def jokenpo(ctx):
     embed = discord.Embed(title="🎮 Jokenpô!", description="Vamos jogar pedra, papel e tesoura?\nEscolha uma opção reagindo com um dos emojis abaixo:", color=discord.Color.purple())
     msg = await ctx.send(embed=embed)

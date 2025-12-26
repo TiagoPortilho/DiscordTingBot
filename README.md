@@ -4,11 +4,17 @@ A Discord bot built with Python using discord.py.
 
 ## Features
 
-- Ping command: `$ping`
-- Leave voice channel: `$sair`
-- Dice roll: `$dado <max>`
-- Rock-Paper-Scissors: `$jokenpo`
-- Text-to-Speech: `$falar <text>` (requires FFmpeg) – Optional: `$falar <text> | <pitch>` to adjust voice depth (e.g., 0.8 for deeper; default uses 0.85)
+- **Basic Commands**: `$ping`, `$help` / `$ajuda`
+- **Voice Control**: `$sair` / `$exit` (leave voice channel)
+- **Games**: `$dado` / `$dice <max>` (dice roll), `$jokenpo` / `$rps` (rock-paper-scissors)
+- **Text-to-Speech**: `$falar` / `$speak <text>` with optional pitch control (`$falar <text> | <pitch>`)
+- **TTS Queue**: `$tts_fila` / `$tts_queue` (view TTS queue)
+- **Music Player**: 
+  - `$tocar` / `$play <song/URL>` (play YouTube music)
+  - `$pausar` / `$pause`, `$continuar` / `$resume`, `$parar` / `$stop`
+  - `$pular` / `$skip`, `$fila` / `$queue`, `$loop` / `$repetir`
+  - `$volume` / `$vol <0-100>`, `$tocando` / `$np` (now playing)
+- **Simultaneous Audio**: TTS works alongside music playback
 
 ## Setup
 
@@ -40,11 +46,22 @@ This will build the image and start the container with the environment variables
 
 For voice features to work in Docker, ensure the container has access to audio devices if running locally (may require additional flags like `--device /dev/snd` on Linux).
 
+## Usage
+
+Use `$help` or `$ajuda` for a complete list of commands. All commands work in Portuguese and English.
+
+**Quick Start:**
+- Join a voice channel
+- `$tocar never gonna give you up` (plays music)
+- `$falar olá mundo` (TTS while music plays)
+- `$help` (shows all commands)
+
 ## Requirements
 
 - Python 3.8+ (for local setup)
 - FFmpeg (included in Docker)
 - Docker (optional, for containerized setup)
+- Dependencies: discord.py, yt-dlp, gtts, python-dotenv
 
 ## License
 

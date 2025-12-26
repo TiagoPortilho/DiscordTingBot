@@ -62,39 +62,60 @@ music_bot = MusicBot(bot)
 async def play_next(ctx):
     guild_id = ctx.guild.id
     queue = music_bot.get_queue(guild_id)
-    
+
     if queue:
         next_source = queue.popleft()
         music_bot.set_current(guild_id, next_source)
-        
+
         def after_playing(error):
             if error:
                 print(f'Player error: {error}')
-            
+
             # Se o loop estiver ativado, recolocar a música na fila
             if music_bot.get_loop_mode(guild_id):
                 current = music_bot.get_current(guild_id)
                 if current:
                     queue.appendleft(current)
-            
+
             music_bot.clear_current(guild_id)
-            
-            # Tocar próxima música
-            asyncio.run_coroutine_threadsafe(play_next(ctx), bot.loop)
-        
+
+            # Verificar se há TTS na fila para tocar após a música
+            from src.commands.tts_commands import tts_bot
+            tts_queue = tts_bot.get_tts_queue(guild_id)
+            if tts_queue and not tts_bot.is_tts_playing(guild_id):
+                # Há TTS na fila - tocar o próximo
+                next_tts = tts_queue.popleft()
+                asyncio.run_coroutine_threadsafe(
+                    tts_bot.play_tts_after_music(ctx, next_tts), bot.loop
+                )
+            else:
+                # Tocar próxima música ou finalizar
+                asyncio.run_coroutine_threadsafe(play_next(ctx), bot.loop)
+
         ctx.voice_client.play(next_source, after=after_playing)
-        
+
         embed = discord.Embed(title="🎵 Tocando Agora", description=f"**{next_source.title}**", color=discord.Color.green())
         if next_source.thumbnail:
             embed.set_thumbnail(url=next_source.thumbnail)
         if next_source.uploader:
             embed.set_footer(text=f"Por: {next_source.uploader}")
-        
+
         await ctx.send(embed=embed)
     else:
         music_bot.clear_current(guild_id)
-        embed = discord.Embed(title="📝 Fila Vazia", description="A fila de música está vazia!", color=discord.Color.orange())
-        await ctx.send(embed=embed)
+
+        # Verificar se há TTS na fila quando não há mais músicas
+        from src.commands.tts_commands import tts_bot
+        tts_queue = tts_bot.get_tts_queue(guild_id)
+        if tts_queue and not tts_bot.is_tts_playing(guild_id):
+            # Há TTS na fila - tocar o próximo
+            next_tts = tts_queue.popleft()
+            asyncio.run_coroutine_threadsafe(
+                tts_bot.play_tts_after_music(ctx, next_tts), bot.loop
+            )
+        else:
+            embed = discord.Embed(title="📝 Fila Vazia", description="A fila de música está vazia!", color=discord.Color.orange())
+            await ctx.send(embed=embed)
 
 # Comandos de música
 @bot.command(name='tocar', aliases=['play', 'p'], help='Toca uma música do YouTube. Use: $tocar <nome da música ou URL>')
@@ -189,8 +210,14 @@ async def parar(ctx):
         guild_id = ctx.guild.id
         music_bot.get_queue(guild_id).clear()
         music_bot.clear_current(guild_id)
+
+        # Também limpar fila de TTS
+        from src.commands.tts_commands import tts_bot
+        tts_bot.get_tts_queue(guild_id).clear()
+        tts_bot.set_tts_playing(guild_id, False)
+
         ctx.voice_client.stop()
-        embed = discord.Embed(title="⏹️ Música Parada", description="Música parada e fila limpa!", color=discord.Color.red())
+        embed = discord.Embed(title="⏹️ Tudo Parado", description="Música e TTS parados, filas limpas!", color=discord.Color.red())
         await ctx.send(embed=embed)
     else:
         embed = discord.Embed(title="❌ Erro", description="Não estou conectado a nenhum canal de voz.", color=discord.Color.red())
@@ -211,40 +238,56 @@ async def fila(ctx):
     guild_id = ctx.guild.id
     queue = music_bot.get_queue(guild_id)
     current = music_bot.get_current(guild_id)
-    
-    if not current and not queue:
-        embed = discord.Embed(title="📝 Fila Vazia", description="A fila está vazia! Use `$tocar` para adicionar músicas.", color=discord.Color.orange())
+
+    # Importar TTS bot para mostrar fila de TTS também
+    from src.commands.tts_commands import tts_bot
+    tts_queue = tts_bot.get_tts_queue(guild_id)
+
+    if not current and not queue and not tts_queue:
+        embed = discord.Embed(title="📝 Filas Vazias", description="As filas de música e TTS estão vazias! Use `$tocar` para adicionar músicas ou `$falar` para TTS.", color=discord.Color.orange())
         await ctx.send(embed=embed)
         return
-    
-    embed = discord.Embed(title="🎵 Fila de Música", color=discord.Color.blue())
-    
+
+    embed = discord.Embed(title="🎵 Filas de Música e TTS", color=discord.Color.blue())
+
     if current:
         duration_str = ""
         if current.duration:
             minutes, seconds = divmod(current.duration, 60)
             duration_str = f" ({int(minutes):02d}:{int(seconds):02d})"
-        
+
         embed.add_field(name="🎵 Tocando Agora", value=f"**{current.title}**{duration_str}", inline=False)
         if current.thumbnail:
             embed.set_thumbnail(url=current.thumbnail)
-    
+
     if queue:
         queue_text = ""
-        for i, source in enumerate(list(queue)[:10]):  # Mostra apenas as próximas 10
+        for i, source in enumerate(list(queue)[:8]):  # Mostra apenas as próximas 8
             duration_str = ""
             if source.duration:
                 minutes, seconds = divmod(source.duration, 60)
                 duration_str = f" ({int(minutes):02d}:{int(seconds):02d})"
             queue_text += f"`{i+1}.` **{source.title}**{duration_str}\n"
-        
-        if len(queue) > 10:
-            queue_text += f"\n... e mais **{len(queue) - 10}** músicas"
-        
-        embed.add_field(name="📝 Próximas na Fila", value=queue_text, inline=False)
-    
+
+        if len(queue) > 8:
+            queue_text += f"\n... e mais **{len(queue) - 8}** músicas"
+
+        embed.add_field(name="📝 Próximas Músicas", value=queue_text, inline=False)
+
+    if tts_queue:
+        tts_text = ""
+        for i, tts_item in enumerate(list(tts_queue)[:5]):  # Mostra apenas os próximos 5 TTS
+            texto_preview = tts_item['texto'][:50] + "..." if len(tts_item['texto']) > 50 else tts_item['texto']
+            pitch_info = f" ({tts_item['pitch']}x)" if tts_item['pitch'] != 1.0 else ""
+            tts_text += f"`{i+1}.` **{texto_preview}**{pitch_info}\n"
+
+        if len(tts_queue) > 5:
+            tts_text += f"\n... e mais **{len(tts_queue) - 5}** mensagens TTS"
+
+        embed.add_field(name="🗣️ Próximos TTS", value=tts_text, inline=False)
+
     loop_status = "✅ Ativado" if music_bot.get_loop_mode(guild_id) else "❌ Desativado"
-    embed.set_footer(text=f"Total na fila: {len(queue)} | Loop: {loop_status}")
+    embed.set_footer(text=f"Músicas na fila: {len(queue)} | TTS na fila: {len(tts_queue)} | Loop: {loop_status}")
     await ctx.send(embed=embed)
 
 @bot.command(name='loop', aliases=['repetir'], help='Ativa/desativa o modo loop da música atual')

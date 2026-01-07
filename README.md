@@ -80,4 +80,4 @@ Use `$help` or `$ajuda` for a complete list of commands. All commands work in Po
 
 ## License
 
-[Add license if applicable]
+MIT License

@@ -53,30 +53,37 @@ class TTSBot:
         # Enviar confirmação
         embed = discord.Embed(
             title="🗣️ TTS na Fila",
-            description=f"Falando após música: **{tts_data['texto'][:100]}{'...' if len(tts_data['texto']) > 100 else ''}**",
+            description=f"Falando após música: **{tts_data['full_text'][:100]}{'...' if len(tts_data['full_text']) > 100 else ''}**",
             color=discord.Color.blue()
         )
-        if tts_data['pitch'] != 1.0:
-            embed.add_field(name="Pitch", value=f"{tts_data['pitch']}x", inline=True)
+        # Mostra pitches se variam
+        pitches = [seg[1] for seg in tts_data['segments']]
+        if len(set(pitches)) > 1 or pitches[0] != 1.0:
+            pitch_str = ', '.join([f"{seg[0][:10]}...: {seg[1]}x" for seg in tts_data['segments'] if seg[1] != 1.0])
+            if pitch_str:
+                embed.add_field(name="Pitches", value=pitch_str[:100], inline=False)
         await ctx.send(embed=embed)
 
 tts_bot = TTSBot(bot)
 
-@bot.command(name='falar', aliases=['speak'], help="Fala o texto fornecido em um canal de voz usando TTS. Opcional: | <pitch> para ajustar profundidade da voz (ex: 0.8 para mais grave; padrão usa 0.85).")
+@bot.command(name='falar', aliases=['speak'], help="Fala o texto fornecido em um canal de voz usando TTS. Formato: palavra1 | pitch1 | palavra2 | pitch2... (pitch opcional, padrão 0.85).")
 async def falar(ctx, *, texto_and_pitch: str):
     vc = await connect_to_voice(ctx)
     if vc is None:
         return
 
     try:
-        texto, pitch = parse_texto_and_pitch(texto_and_pitch)
+        segments = parse_texto_and_pitch(texto_and_pitch)
     except ValueError as e:
         embed = discord.Embed(title="❌ Erro", description=str(e), color=discord.Color.red())
         await ctx.send(embed=embed)
         return
 
-    play_file = generate_tts_audio(texto, pitch)
+    play_file = generate_tts_audio(segments)
     guild_id = ctx.guild.id
+
+    # Cria texto completo para exibição
+    full_text = ' '.join([seg[0] for seg in segments])
 
     # Verifica se há música tocando
     current_music = music_bot.get_current(guild_id)
@@ -85,8 +92,8 @@ async def falar(ctx, *, texto_and_pitch: str):
         # Há música tocando - adiciona TTS à fila
         tts_data = {
             'file': play_file,
-            'texto': texto,
-            'pitch': pitch
+            'segments': segments,
+            'full_text': full_text
         }
 
         queue = tts_bot.get_tts_queue(guild_id)
@@ -94,12 +101,16 @@ async def falar(ctx, *, texto_and_pitch: str):
 
         embed = discord.Embed(
             title="📝 TTS Adicionado à Fila",
-            description=f"**{texto[:100]}{'...' if len(texto) > 100 else ''}**",
+            description=f"**{full_text[:100]}{'...' if len(full_text) > 100 else ''}**",
             color=discord.Color.orange()
         )
         embed.add_field(name="Posição na fila", value=f"#{len(queue)}", inline=True)
-        if pitch != 1.0:
-            embed.add_field(name="Pitch", value=f"{pitch}x", inline=True)
+        # Mostra pitches se variam
+        pitches = [seg[1] for seg in segments]
+        if len(set(pitches)) > 1 or pitches[0] != 1.0:
+            pitch_str = ', '.join([f"{seg[0][:10]}...: {seg[1]}x" for seg in segments if seg[1] != 1.0])
+            if pitch_str:
+                embed.add_field(name="Pitches", value=pitch_str[:100], inline=False)
         await ctx.send(embed=embed)
 
     else:
@@ -114,9 +125,13 @@ async def falar(ctx, *, texto_and_pitch: str):
         vc.play(discord.FFmpegPCMAudio(play_file, executable=FFMPEG_EXECUTABLE), after=after_playing)
 
         # Enviar confirmação com embed
-        embed = discord.Embed(title="🗣️ TTS Ativo", description=f"Falando: **{texto[:100]}{'...' if len(texto) > 100 else ''}**", color=discord.Color.blue())
-        if pitch != 1.0:
-            embed.add_field(name="Pitch", value=f"{pitch}x", inline=True)
+        embed = discord.Embed(title="🗣️ TTS Ativo", description=f"Falando: **{full_text[:100]}{'...' if len(full_text) > 100 else ''}**", color=discord.Color.blue())
+        # Mostra pitches se variam
+        pitches = [seg[1] for seg in segments]
+        if len(set(pitches)) > 1 or pitches[0] != 1.0:
+            pitch_str = ', '.join([f"{seg[0][:10]}...: {seg[1]}x" for seg in segments if seg[1] != 1.0])
+            if pitch_str:
+                embed.add_field(name="Pitches", value=pitch_str[:100], inline=False)
         await ctx.send(embed=embed)
 
 @bot.command(name='tts_fila', aliases=['tts_queue', 'tf'], help='Mostra a fila de mensagens TTS')
@@ -133,8 +148,12 @@ async def tts_fila(ctx):
 
     queue_text = ""
     for i, tts_item in enumerate(list(queue)[:10]):  # Mostra até 10 mensagens
-        texto_preview = tts_item['texto'][:80] + "..." if len(tts_item['texto']) > 80 else tts_item['texto']
-        pitch_info = f" ({tts_item['pitch']}x)" if tts_item['pitch'] != 1.0 else ""
+        texto_preview = tts_item['full_text'][:80] + "..." if len(tts_item['full_text']) > 80 else tts_item['full_text']
+        # Mostra se há pitches variados
+        pitches = [seg[1] for seg in tts_item['segments']]
+        pitch_info = ""
+        if len(set(pitches)) > 1 or pitches[0] != 1.0:
+            pitch_info = " (pitches variados)"
         queue_text += f"`{i+1}.` **{texto_preview}**{pitch_info}\n"
 
     if len(queue) > 10:
